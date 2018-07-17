@@ -47,7 +47,6 @@ class UserProfile:
         return self.retrieved_data
 
     def calculate_languages(self):
-        languages = set(self.retrieved_data['languages']['names'])
-        self.retrieved_data['languages']['names'] = languages
-        self.retrieved_data['languages']['count'] = len(languages)
+        self.retrieved_data['languages']['names'] = set(self.retrieved_data['languages']['names'])
+        self.retrieved_data['languages']['count'] = len(self.retrieved_data['languages']['names'])
 

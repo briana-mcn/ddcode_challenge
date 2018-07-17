@@ -7,6 +7,7 @@ class GitHubProfile(UserProfile):
         super(GitHubProfile, self).__init__()
         self.client = GitHubClient(user)
         self.original_repo_names = []
+        self.all_repos_names = []
 
     def build_github_profile(self):
         """
@@ -33,6 +34,12 @@ class GitHubProfile(UserProfile):
         topics = self.client.get_repo_topics(self.original_repo_names)
         self.retrieved_data['repo_topics']['names'].extend(topics)
         self.retrieved_data['repo_topics']['count'] += len(topics)
+        # add languages with no duplicates
+        languages = self.client.get_repo_languages(self.all_repos_names)
+        if languages:
+            self.retrieved_data['languages']['names'].extend(
+                set([k for lang in languages for k, v in lang.items() if lang])
+            )
 
         return self.retrieved_data
 
@@ -52,11 +59,9 @@ class GitHubProfile(UserProfile):
         """
         forked_count = 0
         original_count = 0
-        all_languages = set()
         for repo in data:
-            # add languages so their are no duplicates, lowercase too
-            if repo.get('language'):
-                all_languages.add(repo['language'].lower())
+            # add all repos names for other functions use
+            self.all_repos_names.append(repo['name'])
             self.retrieved_data['account_size'] += repo['size']
             self.retrieved_data['stars']['received'] += repo['stargazers_count']
             self.retrieved_data['open_issues_count'] += repo['open_issues_count']
@@ -71,7 +76,5 @@ class GitHubProfile(UserProfile):
                 self.original_repo_names.append(repo['name'])
                 self.retrieved_data['repos']['original']['names'].append(repo['name'])
                 self.retrieved_data['repos']['original']['repo_watchers'] += repo['watchers_count']
-        self.retrieved_data['languages']['names'].extend([lang for lang in all_languages])
-        self.retrieved_data['languages']['count'] = len(all_languages)
         self.retrieved_data['repos']['original']['count'] += original_count
         self.retrieved_data['repos']['forked']['count'] += forked_count

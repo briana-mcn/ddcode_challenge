@@ -109,6 +109,25 @@ class GitHubClient(BaseClient):
                 topics.update(resp.json()['names'])
         return topics
 
+    def get_repo_languages(self, repos, page_size=100, timeout=20):
+        all_languages = []
+        for repo_name in repos:
+            endpoint = 'repos/{user}/{repo_name}/languages'.format(user=self.user, repo_name=repo_name)
+            params = {'page_size': page_size}
+            params.update(self.params)
+            futures = self.session.get(
+                url=self.base_url+endpoint,
+                params=params,
+                timeout=timeout,
+                headers=self.headers
+            )
+            resp = futures.result()
+            if resp.status_code != 200:
+                # todo raise
+                pass
+            all_languages.append(resp.json())
+        return all_languages
+
     def _retrieve_all_paged_objects(self, endpoint, timeout, params, headers):
         """Returns all paginated results
         """

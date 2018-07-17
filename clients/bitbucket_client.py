@@ -11,11 +11,11 @@ class BitBucketClient(BaseClient):
         self.resource_type = reource_type
 
     def get_repository_data(self, page_size=100, timeout=20):
-        endpoint = 'repositories/{resource}'.format(
-            resource=self.resource,
-            page_size=page_size
-        )
-        return self.retrieve_all_paged_objects(self.base_url, endpoint, timeout, params={'pagelen': page_size})
+        """Retrieves all repository data for a provided team or user.
+        """
+        params = {'pagelen': page_size}
+        endpoint = 'repositories/{resource}'.format(resource=self.resource)
+        return self.retrieve_all_paged_objects(endpoint, timeout, params)
 
     def get_repo_commits(self, repos, page_size=100, timeout=20):
         total_commits = 0
@@ -79,21 +79,30 @@ class BitBucketClient(BaseClient):
             pass
         return resp.json().get('size')
 
-    def retrieve_all_paged_objects(self, base_url, endpoint, timeout, params):
-        """
+    def retrieve_all_paged_objects(self, endpoint, timeout, params):
+        """Retrieves the JSON content of all paginated pages of a resource.
+
+        The Bitbucket API provides a 'next' key if more records are available after the current page.
+        The 'next' key is utilized to retrieve the next paginated URL-
+        all JSON responses are appended to a list and returned after all pages are retrieved.
+
+        :return: all JSON content of each paginated page
+        :rtype: list of JSON objects
         """
         all_objects = []
-        resp = requests.get(
-            url=base_url+endpoint,
+        futures = self.session.get(
+            url=self.base_url+endpoint,
             params=params,
             timeout=timeout
         )
+        resp = futures.result()
         if resp.status_code != 200:
             # todo raise error
             pass
         all_objects.extend(resp.json()['values'])
         while 'next' in resp.json().keys():
-            resp = requests.get(url=resp.json()['next'])
+            futures = self.session.get(url=resp.json()['next'])
+            resp = futures.result()
             if resp.status_code != 200:
                 # todo raise err
                 pass

@@ -40,25 +40,31 @@ class BitBucketClient(BaseClient):
             )
         return total_commits
 
-    def get_repo_issues(self, repos):
+    def get_repo_issues(self, repos, timeout=20):
+        """Retrieves the total issue count from each input repository.
+
+        :param repos: repos to parse to get issue count
+        :type repos: list of str
+        :return: total issues count of all repositories
+        :rtype: int
+        """
         total_issues = 0
         for repo in repos:
             endpoint = 'repositories/{resource}/{repo_name}/issues'.format(
                 resource=self.resource,
                 repo_name=repo
             )
-            total_issues += self.get_mulitple_repo_record_count(endpoint)
+            total_issues += self.get_mulitple_repo_record_count(endpoint, timeout)
         return total_issues
 
-    def get_repo_watchers(self, repos, page_size=100):
+    def get_repo_watchers(self, repos, timeout=20):
         total_watchers = 0
         for repo in repos:
             endpoint = 'repositories/{resource}/{repo_name}/watchers'.format(
                 resource=self.resource,
                 repo_name=repo,
-                page_size=page_size
             )
-            total_watchers += self.get_mulitple_repo_record_count(endpoint)
+            total_watchers += self.get_mulitple_repo_record_count(endpoint, timeout)
         return total_watchers
 
     def get_followers(self):
@@ -121,8 +127,16 @@ class BitBucketClient(BaseClient):
             all_objects.extend(resp.json())
         return all_objects
 
-    def get_mulitple_repo_record_count(self, endpoint):
-        resp = requests.get(self.base_url + endpoint)
+    def get_mulitple_repo_record_count(self, endpoint, timeout):
+        """Retrieves the number of records returned from an endpoint.
+
+        Introspects the response for the 'size' key that represents the total record count.
+
+        :return: the count of all records
+        :rtype: int
+        """
+        futures = self.session.get(url=self.base_url+endpoint, timeout=timeout)
+        resp = futures.result()
         if resp.status_code != 200:
             # todo raise
             pass
@@ -131,7 +145,7 @@ class BitBucketClient(BaseClient):
         if not data_dict.get('size'):
             # todo raise
             pass
-        return (data_dict['size'])
+        return data_dict['size']
 
     def retrieve_page_object_count(self, endpoint, timeout, params, page_size):
         """Parses through all paged urls of an endpoints' response, returning the count of all records for the repo.

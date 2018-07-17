@@ -37,10 +37,10 @@ class GitHubProfile(UserProfile):
         # add languages with no duplicates
         languages = self.client.get_repo_languages(self.all_repos_names)
         if languages:
-            all_languages = self.retrieved_data['languages']['names'].extend(
-                set([k for lang in languages for k, v in lang.items() if lang])
+            self.retrieved_data['languages']['names'].extend(
+                (set([k for lang in languages for k, v in lang.items() if lang]))
             )
-            self.retrieved_data['languages']['count'] += len(all_languages)
+            self.retrieved_data['languages']['count'] += len(self.retrieved_data['languages']['names'])
 
         return self.retrieved_data
 

@@ -4,11 +4,11 @@ from clients.base import BaseClient
 
 
 class BitBucketClient(BaseClient):
-    def __init__(self, resource, reource_type='teams'):
+    def __init__(self, resource, resource_type='teams'):
         super(BitBucketClient, self).__init__()
         self.base_url = 'https://api.bitbucket.org/2.0/'
         self.resource = resource
-        self.resource_type = reource_type
+        self.resource_type = resource_type
 
     def get_repository_data(self, page_size=100, timeout=20):
         """Retrieves all repository data for a provided team or user.

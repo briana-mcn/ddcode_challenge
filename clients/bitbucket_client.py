@@ -18,14 +18,26 @@ class BitBucketClient(BaseClient):
         return self.retrieve_all_paged_objects(endpoint, timeout, params)
 
     def get_repo_commits(self, repos, page_size=100, timeout=20):
+        """Retrieves the commit count for all provided repositories
+
+        :param repos: desired repositories to retrieve commit count from
+        :type repos: list of strs
+        :return: commit count of input repositories
+        :rtype: int
+        """
+        params = {'pagelen': page_size}
         total_commits = 0
         for repo in repos:
             endpoint = 'repositories/{resource}/{repo_name}/commits'.format(
                 resource=self.resource,
                 repo_name=repo
             )
-            total_commits += self.retrieve_page_object_count(endpoint, timeout, params={'pagelen': page_size})
-
+            total_commits += self.retrieve_page_object_count(
+                endpoint,
+                timeout=timeout,
+                params=params,
+                page_size=page_size
+            )
         return total_commits
 
     def get_repo_issues(self, repos):
@@ -121,8 +133,12 @@ class BitBucketClient(BaseClient):
             pass
         return (data_dict['size'])
 
-    def retrieve_page_object_count(self, endpoint, timeout, params):
-        """Parses through all paged urls of an endpoints' repsponse, returning the count of all records for the repo.
+    def retrieve_page_object_count(self, endpoint, timeout, params, page_size):
+        """Parses through all paged urls of an endpoints' response, returning the count of all records for the repo.
+
+        Leverages the desired number of records to return on each response and the presence of a 'next'
+        key denoting whether or not all pages have been served. A count of the pages multiplied by the
+        page size plus a count of the last paged records are returned.
 
         .. note:: Implemented specifically for the /commits endpoint, as it does not include
             a 'size' key indicating the record count.
@@ -131,20 +147,26 @@ class BitBucketClient(BaseClient):
         :type endpoint: str
         :param timeout: seconds to allows for the requests library to send a request
         :type timeout: int
-        :param params: items to be passed in the request as query paramaters
+        :param params: items to be passed in the request as query parameters
         :type params: dict
+        :param page_size: page length to return for the paginated responses
+        :type page_size: int
         :return: count of all commits in a single repository
         :rtype: int
-        :raise: HTTPError
         """
-        resp = requests.get(url=self.base_url+endpoint, params=params, timeout=timeout)
+        futures = self.session.get(url=self.base_url+endpoint, params=params, timeout=timeout)
+        resp = futures.result()
         if resp.status_code != 200:
             # todo raise
             pass
         page_count = 0
         while 'next' in resp.json().keys():
             url = resp.json()['next']
-            resp = requests.get(url=url)
+            futures = self.session.get(url=url)
+            resp = futures.result()
+            if resp.status_code != 200:
+                # todo
+                raise Exception
             page_count += 1
 
         final_page_records = resp.json().get('values')
@@ -152,4 +174,4 @@ class BitBucketClient(BaseClient):
             final_page_record_count = 0
         else:
             final_page_record_count = len(final_page_records)
-        return (page_count * 100) + final_page_record_count
+        return (page_count * page_size) + final_page_record_count

@@ -65,6 +65,25 @@ class GitHubClient(BaseClient):
             headers=self.headers
         )
 
+    def get_individual_repo_data(self, repos, page_size=100, timeout=20):
+        params = {'page_size': page_size}
+        params.update(self.params)
+        total_data = []
+        for repo in repos:
+            endpoint = 'repos/{user}/{repo_name}'.format(user=self.user, repo_name=repo)
+            futures = self.session.get(
+                url=self.base_url+endpoint,
+                headers=self.headers,
+                timeout=timeout,
+                params=params
+            )
+            resp = futures.result()
+            if resp.status_code != 200:
+                # todo raise error
+                pass
+            total_data.append(resp.json())
+        return total_data
+
     def get_user_commits(self, repos, page_size=100, timeout=20):
         params = {'page_size': page_size}
         params.update(self.params)

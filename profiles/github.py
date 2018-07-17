@@ -27,6 +27,13 @@ class GitHubProfile(UserProfile):
         stars_given = self.client.get_user_starred_repository()
         self.retrieved_data['stars']['given'] += stars_given
 
+        # get watchers or subscribers for all original repos
+        repos = self.client.get_individual_repo_data(self.original_repo_names)
+        subscriber_count = 0
+        for repo in repos:
+            subscriber_count += repo['subscribers_count']
+        self.retrieved_data['repos']['original']['repo_watchers'] += subscriber_count
+
         # get the number of commits for each repo
         commit_count = self.client.get_user_commits(self.original_repo_names)
         self.retrieved_data['repos']['original']['commit_count'] += commit_count
@@ -76,6 +83,5 @@ class GitHubProfile(UserProfile):
                 # class variable for making other calls with the repos names
                 self.original_repo_names.append(repo['name'])
                 self.retrieved_data['repos']['original']['names'].append(repo['name'])
-                self.retrieved_data['repos']['original']['repo_watchers'] += repo['watchers_count']
         self.retrieved_data['repos']['original']['count'] += original_count
         self.retrieved_data['repos']['forked']['count'] += forked_count

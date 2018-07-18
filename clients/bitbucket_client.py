@@ -165,15 +165,24 @@ class BitBucketClient(BaseClient):
         """
         futures = self.session.get(url=self.base_url+endpoint, timeout=timeout, params=params)
         resp = futures.result()
-        if resp.status_code != 200:
-            # todo raise
-            pass
         data_dict = resp.json()
-        # something not right with response
-        if not data_dict.get('size'):
-            # todo raise
+        # an issue tracker may not exist for a repository, try out the key and catch if that's the error,
+        # otherwise raise the unknown issue
+        if resp.status_code == 200:
+            return data_dict['size']
+        # not great implementation, but the only way I could figure out how to differentiate between
+        # a request error or issue tracking not implemented error
+        elif resp.status_code == 404:
+            # probably would be good to log this 404
+            # " 'size' key does not exist: {}".format(resp.status_code)
+            if data_dict['error']['message'] != 'Repository has no issue tracker.':
+                # not an issue tracking issue
+                # todo raise error
+                pass
+            return 0
+        else:
+            # todo raise error for statuses other than 200 or 404
             pass
-        return data_dict['size']
 
     def retrieve_page_object_count(self, endpoint, timeout, params, page_size):
         """Parses through all paged urls of an endpoints' response, returning the count of all records for the repo.

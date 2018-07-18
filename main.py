@@ -22,20 +22,12 @@ def main():
     # if the query params exists, initiate build
     if github_user and bitbucket_user and bitbucket_user_type:
         github_profile = GitHubProfile(github_user)
-        try:
-            github_profile.build_github_profile()
-        except Exception:
-            # todo raise error- something went wrong and change Exception class
-            pass
+        github_profile.build_github_profile()
         if bitbucket_user_type not in ['teams', 'users']:
             # todo raise error
             pass
         bitbucket_profile = BitBucketProfile(resource=bitbucket_user, resource_type=bitbucket_user_type)
-        try:
-            bitbucket_profile.build_bitbucket_profile()
-        except Exception:
-            # todo raise error- something went terribly wrong- change exception class
-            pass
+        bitbucket_profile.build_bitbucket_profile()
 
         # jsonify the retreieved data dictionary from both accounts
         aggregate_profiles = UserProfile()

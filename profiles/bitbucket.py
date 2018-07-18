@@ -37,8 +37,9 @@ class BitBucketProfile(UserProfile):
         originals = []
         size = 0
         for repo in repos:
-            # get all repo names
-            languages.add(repo['language'].lower())
+            # get all repo languages, parse out any non-char represented languages
+            if repo['language']:
+                languages.add(repo['language'].lower())
             # get all repos size
             size += repo['size']
             # determine if repo is forked

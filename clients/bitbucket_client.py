@@ -1,9 +1,12 @@
-import requests
-
 from clients.base import BaseClient
 
 
 class BitBucketClient(BaseClient):
+    """Client used to interface with multiple BitBucket APIs.
+
+    Considers the resource type when instantiating the client to allow for
+    accurate fetching of the desired category of resources.
+    """
     def __init__(self, resource, resource_type='teams'):
         super(BitBucketClient, self).__init__()
         self.base_url = 'https://api.bitbucket.org/2.0/'
@@ -12,13 +15,16 @@ class BitBucketClient(BaseClient):
 
     def get_repository_data(self, page_size=100, timeout=20):
         """Retrieves all repository data for a provided team or user.
+
+        :return: all repositories and associate metadata
+        :rtype: list of dicts
         """
         params = {'pagelen': page_size}
         endpoint = 'repositories/{resource}'.format(resource=self.resource)
         return self.retrieve_all_paged_objects(endpoint, timeout, params)
 
     def get_repo_commits(self, repos, page_size=100, timeout=20):
-        """Retrieves the commit count for all provided repositories
+        """Retrieves the commit count for all provided repositories.
 
         :param repos: desired repositories to retrieve commit count from
         :type repos: list of strs
@@ -41,10 +47,10 @@ class BitBucketClient(BaseClient):
         return total_commits
 
     def get_repo_issues(self, repos, timeout=20):
-        """Retrieves the total issue count from each input repository.
+        """Calculates the total issue count from each input repository.
 
         :param repos: repos to parse to get issue count
-        :type repos: list of str
+        :type repos: list of strs
         :return: total issues count of all repositories
         :rtype: int
         """
@@ -54,26 +60,38 @@ class BitBucketClient(BaseClient):
                 resource=self.resource,
                 repo_name=repo
             )
-            total_issues += self.get_mulitple_repo_record_count(endpoint, timeout)
+            total_issues += self.get_multiple_repo_record_count(endpoint, timeout)
         return total_issues
 
     def get_repo_watchers(self, repos, timeout=20):
+        """Retrieves the number of watchers for all of the users (or teams) associated repositories.
+
+        :param repos: all of the repos to retrieve the total watcher count from
+        :type repos: list of strs
+        :return: all of the users repository watchers
+        :rtype: int
+        """
         total_watchers = 0
         for repo in repos:
             endpoint = 'repositories/{resource}/{repo_name}/watchers'.format(
                 resource=self.resource,
                 repo_name=repo,
             )
-            total_watchers += self.get_mulitple_repo_record_count(endpoint, timeout)
+            total_watchers += self.get_multiple_repo_record_count(endpoint, timeout)
         return total_watchers
 
-    def get_followers(self):
+    def get_followers(self, timeout=20):
+        """Retrieves all of the users or teams followers
+
+        :return: the number of followers on all of the users repositories
+        :rtype: int
+        """
         endpoint = '{resource_type}/{resource}/followers'.format(
             resource_type=self.resource_type,
             resource=self.resource
         )
-        resp = requests.get(url=self.base_url+endpoint)
-        # todo implement non-200 response error handling
+        futures = self.session.get(url=self.base_url+endpoint, timeout=timeout)
+        resp = futures.result()
         if resp.json() != 200:
             # todo raise error
             pass
@@ -82,12 +100,18 @@ class BitBucketClient(BaseClient):
             pass
         return resp.json().get('size')
 
-    def get_followings(self):
+    def get_followings(self, timeout=20):
+        """Retrieves the count of active repositories a user or team is following.
+
+        :return: number of followings a users has
+        :rtype: int
+        """
         endpoint = '{resource_type}/{resource}/following'.format(
             resource_type=self.resource_type,
             resource=self.resource
         )
-        resp = requests.get(url=self.base_url + endpoint)
+        futures = self.session.get(url=self.base_url+endpoint, timeout=timeout)
+        resp = futures.result()
         # todo implement non-200 response error handling
         if resp.json() != 200:
             # todo raise error
@@ -127,7 +151,7 @@ class BitBucketClient(BaseClient):
             all_objects.extend(resp.json())
         return all_objects
 
-    def get_mulitple_repo_record_count(self, endpoint, timeout):
+    def get_multiple_repo_record_count(self, endpoint, timeout):
         """Retrieves the number of records returned from an endpoint.
 
         Introspects the response for the 'size' key that represents the total record count.
@@ -159,7 +183,7 @@ class BitBucketClient(BaseClient):
 
         :param endpoint: endpoint for the request
         :type endpoint: str
-        :param timeout: seconds to allows for the requests library to send a request
+        :param timeout: seconds to allows for the requests_futures library to send a request
         :type timeout: int
         :param params: items to be passed in the request as query parameters
         :type params: dict

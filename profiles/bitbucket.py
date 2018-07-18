@@ -21,13 +21,15 @@ class BitBucketProfile(UserProfile):
         self.parse_repository_data(repo_objects)
         # get commit count
         commits = self.client.get_repo_commits(self.original_repos)
-        self.retrieved_data['repos']['original']['commit_count'] += commits['count']
+        self.retrieved_data['repos']['original']['commit_count'] += commits
         # get watchers
-        watchers = self.client.get_repo_watchers(self.all_repos_names)
-        self.retrieved_data['repos']['original']['repo_watchers'] += watchers['count']
+        watchers = self.client.get_repo_watchers(self.original_repos)
+        self.retrieved_data['repos']['original']['repo_watchers'] += watchers
         # get issue count
-        issues = self.client.get_repo_issues(self.original_repos)
-        self.retrieved_data['open_issues_count'] += issues['count']
+        issues = self.client.get_repo_issues(self.all_repos_names)
+        self.retrieved_data['open_issues_count'] += issues
+
+        return self.retrieved_data
 
     def parse_repository_data(self, repos):
         languages = set()
@@ -45,9 +47,11 @@ class BitBucketProfile(UserProfile):
             else:
                 originals.append(repo['slug'])
 
-        self.retrieved_data['languages']['names'].append(languages)
+        self.retrieved_data['languages']['names'].extend(languages)
         self.retrieved_data['repos']['original']['names'].extend(originals)
+        self.retrieved_data['repos']['original']['count'] += len(originals)
         self.retrieved_data['repos']['forked']['names'].extend(forked)
+        self.retrieved_data['repos']['forked']['count'] += len(forked)
         self.retrieved_data['account_size'] += size
         self.all_repos_names.extend(forked)
         self.all_repos_names.extend(originals)

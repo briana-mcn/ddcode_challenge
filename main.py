@@ -2,7 +2,7 @@ import json
 
 from flask import Flask, request
 
-from exc import RequestError
+from exc import RequestError, VCSManagerError
 from profiles.base_user_profile import UserProfile
 from profiles.bitbucket import BitBucketProfile
 from profiles.github import GitHubProfile
@@ -30,12 +30,30 @@ def main():
         bitbucket_profile = BitBucketProfile(resource=bitbucket_user, resource_type=bitbucket_user_type)
         bitbucket_profile.build_bitbucket_profile()
 
-    # jsonify the retreieved data dictionary from both accounts
-    # note: I think this is a really hacky, near unviable solution. Aside from building a small database,
-    # I think I would need to re-implement a aggregator to take two dictionaries and merge all values
+        # jsonify the retreieved data dictionary from both accounts
+        # note: I think this is a really hacky, near un-viable solution for a production environment.
+        # Aside from building a small database, I think I would need to re-implement
+        # an aggregator to take two dictionaries and merge all values, that way you could still access the individual
+        # dict values of any `Profile` object
+        confirm_dict_equality(bitbucket_profile.retrieved_data, github_profile.retrieved_data)
         aggregate_profiles = bitbucket_profile
         aggregate_profiles.calculate_total_profile_data()
         request.status_code = 200
         return json.dumps(aggregate_profiles.retrieved_data)
     else:
         raise RequestError('Missing query parameters: {}'.format(list(request.args.keys())))
+
+
+def confirm_dict_equality(dict1, dict2):
+    """Confirms equality of two dictionaries
+    """
+    if dict1 == dict2:
+        pass
+    else:
+        # log this
+        request.status_code = 500g
+        raise VCSManagerError('The built dictionaries are not identical. Yikes.')
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

@@ -37,7 +37,7 @@ def main():
         # dict values of any `Profile` object
         confirm_dict_equality(bitbucket_profile.retrieved_data, github_profile.retrieved_data)
         aggregate_profiles = bitbucket_profile
-        aggregate_profiles.calculate_total_profile_data()
+        aggregate_profiles.calculate_languages()
         request.status_code = 200
         return json.dumps(aggregate_profiles.retrieved_data)
     else:
@@ -51,7 +51,7 @@ def confirm_dict_equality(dict1, dict2):
         pass
     else:
         # log this
-        request.status_code = 500g
+        request.status_code = 500
         raise VCSManagerError('The built dictionaries are not identical. Yikes.')
 
 

@@ -39,15 +39,6 @@ class UserProfile:
         }
     }
 
-    def calculate_total_profile_data(self):
-        self.calculate_languages()
-        self.retrieved_data['repos']['original']['count'] = len(
-            self.retrieved_data['repos']['original']['names'])
-        self.retrieved_data['repos']['forked']['count'] = len(
-            self.retrieved_data['repos']['forked']['names']
-        )
-        return self.retrieved_data
-
     def calculate_languages(self):
         self.retrieved_data['languages']['names'] = list(
             {lang.lower() for lang in self.retrieved_data['languages']['names']}

@@ -1,4 +1,5 @@
 from clients.base import BaseClient
+from exc import HTTPError
 
 
 class BitBucketClient(BaseClient):
@@ -95,12 +96,17 @@ class BitBucketClient(BaseClient):
         )
         futures = self.session.get(url=self.base_url+endpoint, timeout=timeout, params=params)
         resp = futures.result()
-        if resp.json() != 200:
-            # todo raise error
-            pass
-        if not resp.json().get('size'):
-            #todo raise
-            pass
+        if resp.status_code != 200:
+            raise HTTPError(
+                'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                    self.__class__.__name__,
+                    resp.json(),
+                    resp.status_code
+                )
+            )
+        # if size key exists, but is 0, we don't want the error to be raised
+        if resp.json().get('size', 'no size') == 'no size':
+            raise HTTPError("Expected 'size' key not returned in the response: {}".format(resp.json()))
         return resp.json()
 
     def get_followings(self, page_size=100, timeout=20):
@@ -116,13 +122,17 @@ class BitBucketClient(BaseClient):
         )
         futures = self.session.get(url=self.base_url+endpoint, timeout=timeout, params=params)
         resp = futures.result()
-        # todo implement non-200 response error handling
-        if resp.json() != 200:
-            # todo raise error
-            pass
-        if not resp.json().get('size'):
-            # todo raise
-            pass
+        if resp.status_code != 200:
+            raise HTTPError(
+                'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                    self.__class__.__name__,
+                    resp.json(),
+                    resp.status_code
+                )
+            )
+        # no error raised if size key is 0
+        if resp.json().get('size', 'no size') == 'no size':
+            raise HTTPError("Expected 'size' key not returned in the response: {}".format(resp.json()))
         return resp.json()
 
     def retrieve_all_paged_objects(self, endpoint, timeout, params):
@@ -143,15 +153,25 @@ class BitBucketClient(BaseClient):
         )
         resp = futures.result()
         if resp.status_code != 200:
-            # todo raise error
-            pass
+            raise HTTPError(
+                'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                    self.__class__.__name__,
+                    resp.json(),
+                    resp.status_code
+                )
+            )
         all_objects.extend(resp.json()['values'])
         while 'next' in resp.json().keys():
             futures = self.session.get(url=resp.json()['next'])
             resp = futures.result()
             if resp.status_code != 200:
-                # todo raise err
-                pass
+                raise HTTPError(
+                    'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                        self.__class__.__name__,
+                        resp.json(),
+                        resp.status_code
+                    )
+                )
             all_objects.extend(resp.json())
         return all_objects
 
@@ -177,12 +197,22 @@ class BitBucketClient(BaseClient):
             # " 'size' key does not exist: {}".format(resp.status_code)
             if data_dict['error']['message'] != 'Repository has no issue tracker.':
                 # not an issue tracking issue
-                # todo raise error
-                pass
+                raise HTTPError(
+                    'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                        self.__class__.__name__,
+                        resp.json(),
+                        resp.status_code
+                    )
+                )
             return 0
         else:
-            # todo raise error for statuses other than 200 or 404
-            pass
+            raise HTTPError(
+                'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                    self.__class__.__name__,
+                    resp.json(),
+                    resp.status_code
+                )
+            )
 
     def retrieve_page_object_count(self, endpoint, timeout, params, page_size):
         """Parses through all paged urls of an endpoints' response, returning the count of all records for the repo.
@@ -208,16 +238,26 @@ class BitBucketClient(BaseClient):
         futures = self.session.get(url=self.base_url+endpoint, params=params, timeout=timeout)
         resp = futures.result()
         if resp.status_code != 200:
-            # todo raise
-            pass
+            raise HTTPError(
+                'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                    self.__class__.__name__,
+                    resp.json(),
+                    resp.status_code
+                )
+            )
         page_count = 0
         while 'next' in resp.json().keys():
             url = resp.json()['next']
             futures = self.session.get(url=url)
             resp = futures.result()
             if resp.status_code != 200:
-                # todo
-                raise Exception
+                raise HTTPError(
+                    'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                        self.__class__.__name__,
+                        resp.json(),
+                        resp.status_code
+                    )
+                )
             page_count += 1
 
         final_page_records = resp.json().get('values')

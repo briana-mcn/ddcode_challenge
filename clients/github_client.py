@@ -2,6 +2,7 @@ import os
 import re
 
 from clients.base import BaseClient
+from exc import HTTPError
 
 
 class GitHubClient(BaseClient):
@@ -30,9 +31,13 @@ class GitHubClient(BaseClient):
         if resp.status_code == 200:
             return resp.json()
         else:
-            # something went bad with the request
-            # todo raise something here
-            pass
+            raise HTTPError(
+                'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                    self.__class__.__name__,
+                    resp.json(),
+                    resp.status_code
+                )
+            )
 
     def get_user_starred_repository(self, page_size=100, timeout=20):
         endpoint = 'users/{user}/starred'.format(user=self.user)
@@ -46,8 +51,13 @@ class GitHubClient(BaseClient):
         )
         resp = futures.result()
         if resp.status_code != 200:
-            # todo raise
-            pass
+            raise HTTPError(
+                'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                    self.__class__.__name__,
+                    resp.json(),
+                    resp.status_code
+                )
+            )
         if 'next' in resp.links.keys():
             records = self._get_total_record_count(resp.links)
             return records
@@ -79,8 +89,13 @@ class GitHubClient(BaseClient):
             )
             resp = futures.result()
             if resp.status_code != 200:
-                # todo raise error
-                pass
+                raise HTTPError(
+                    'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                        self.__class__.__name__,
+                        resp.json(),
+                        resp.status_code
+                    )
+                )
             total_data.append(resp.json())
         return total_data
 
@@ -98,8 +113,17 @@ class GitHubClient(BaseClient):
             )
             resp = futures.result()
             if resp.status_code != 200:
-                # todo raise error
-                pass
+                if resp.status_code == 409:
+                    # todo log this - repository is empty, no commits
+                    total_commits += 0
+                    continue
+                raise HTTPError(
+                    'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                        self.__class__.__name__,
+                        resp.json(),
+                        resp.status_code
+                    )
+                )
             if 'next' in resp.links.keys():
                 repo_commits = self._get_total_record_count(resp.links)
                 total_commits += repo_commits
@@ -122,8 +146,13 @@ class GitHubClient(BaseClient):
             )
             resp = futures.result()
             if resp.status_code != 200:
-                # todo raise error
-                pass
+                raise HTTPError(
+                    'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                        self.__class__.__name__,
+                        resp.json(),
+                        resp.status_code
+                    )
+                )
             if resp.json().get('names'):
                 topics.update(resp.json()['names'])
         return topics
@@ -142,8 +171,13 @@ class GitHubClient(BaseClient):
             )
             resp = futures.result()
             if resp.status_code != 200:
-                # todo raise
-                pass
+                raise HTTPError(
+                    'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                        self.__class__.__name__,
+                        resp.json(),
+                        resp.status_code
+                    )
+                )
             all_languages.append(resp.json())
         return all_languages
 
@@ -159,15 +193,22 @@ class GitHubClient(BaseClient):
         )
         resp = futures.result()
         if resp.status_code != 200:
-            # todo raise error
-            pass
+            raise HTTPError('Unexpected response of client {}: HTTP status: {}'.format(
+                self.__class__.__name__,
+                resp.status_code)
+            )
         all_objects.extend(resp.json())
         while 'next' in resp.links.keys():
             futures = self.session.get(url=resp.links['next']['url'], headers=headers, params=params)
             resp = futures.result()
             if resp.status_code != 200:
-                #todo raise err
-                pass
+                raise HTTPError(
+                    'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                        self.__class__.__name__,
+                        resp.json(),
+                        resp.status_code
+                    )
+                )
             all_objects.extend(resp.json())
         return all_objects
 
@@ -178,8 +219,13 @@ class GitHubClient(BaseClient):
         futures = self.session.get(url=last_url, params=self.params, timeout=20, headers=self.headers)
         resp = futures.result()
         if resp.status_code != 200:
-            # todo
-            pass
+            raise HTTPError(
+                'Unexpected response of client {}: {}, HTTP status: {}'.format(
+                    self.__class__.__name__,
+                    resp.json(),
+                    resp.status_code
+                )
+            )
         last_count = len(resp.json())
         last_page_num = re.search(r'\d+', re.search(r'\bpage=\d+', last_url).group(0)).group(0)
         return ((int(last_page_num) - 1) * 100) + last_count

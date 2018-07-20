@@ -16,8 +16,6 @@ def main():
     github_user = request.args.get('github_user')
     bitbucket_user = request.args.get('bitbucket_user')
     bitbucket_user_type = request.args.get('bitbucket_user_type')
-    # GET
-    # /user-profile?bitbucket_user=1&bitbucket_user_type=teams&github_user=1
 
     # if the query params exists, initiate build
     if bitbucket_user and bitbucket_user_type and github_user:
